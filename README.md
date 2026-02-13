@@ -60,6 +60,13 @@ pnpm dev:web          # 启动示例前端（/agui 代理到后端）
 
 ### 2. 前端配置（example/web）
 
+前端依赖 **packages/core** 与 **packages/ui**，启动前需先构建：
+
+```bash
+pnpm build:core
+pnpm build:ui
+```
+
 开发模式下，Vite 会将 `/agui` 代理到 `http://localhost:3001`，无需额外配置。
 
 生产构建时，可通过环境变量 `VITE_AGUI_URL` 指定后端地址：
@@ -71,9 +78,10 @@ VITE_AGUI_URL=https://your-backend.com/agui pnpm build
 ### 3. 启动与访问
 
 1. 在根目录执行 `pnpm install`（若未安装依赖）
-2. 先启动后端：`pnpm dev:server`
-3. 再启动前端：`pnpm dev:web`
-4. 浏览器打开 `http://localhost:5173`，即可与 LangChain Agent 对话
+2. 构建 core 与 ui：`pnpm build:core`、`pnpm build:ui`（前端依赖二者）
+3. 先启动后端：`pnpm dev:server`
+4. 再启动前端：`pnpm dev:web`
+5. 浏览器打开 `http://localhost:5173`，即可与 LangChain Agent 对话
 
 会话数据会持久化到 localStorage（key: `example_agui_sessions`）。
 
