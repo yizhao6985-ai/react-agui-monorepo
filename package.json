@@ -1,0 +1,22 @@
+{
+  "name": "react-agui-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AGUI React SDK monorepo: core, example server (LangChain agent), example web (Vite + React)",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "build:core": "pnpm --filter react-agui-core run build",
+    "build:ui": "pnpm --filter react-agui-ui run build",
+    "build:example-server": "pnpm --filter example-server run build",
+    "build:example-web": "pnpm --filter example-web run build",
+    "dev:core": "pnpm --filter react-agui-core run dev",
+    "dev:ui": "pnpm --filter react-agui-ui run dev",
+    "dev:server": "pnpm --filter example-server run dev",
+    "dev:web": "pnpm --filter example-web run dev"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}
