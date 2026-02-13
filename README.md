@@ -1,6 +1,6 @@
 # react-agui-core
 
-基于 [AG-UI 协议](https://docs.ag-ui.com/) 的 React 生态：**react-agui-core** 提供状态与逻辑（Provider、hooks、工具），**react-agui-ui** 提供基于 Tailwind 的 UI 组件（Conversations、Bubble、Bubble.List、Sender），支持发送、编辑（分叉重发）、重试、会话重命名等，可与 AntdX 等 AI 组件库类似地用于前端对话场景。
+基于 [AG-UI 协议](https://docs.ag-ui.com/) 的 React 生态：**react-agui-core** 提供状态与逻辑（Provider、hooks、工具），**react-agui-ui** 提供基于 Tailwind 的 UI 组件（Conversations、Bubble、Bubble.List、Sender），支持发送、编辑（分叉重发）、重试、会话重命名等。
 
 ---
 
@@ -185,11 +185,11 @@ function Chat() {
 
 ### 3. 会话区 / 对话区 / 输入区
 
-| 区域       | 数据与操作                                                                                                 |
-| ---------- | ---------------------------------------------------------------------------------------------------------- |
+| 区域       | 数据与操作                                                                                                                          |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | **会话区** | `sessions`、`currentSession?.id` 高亮；`createSession()`、`switchSession(id)`、`deleteSession(id)`、`updateSessionTitle(id, title)` |
-| **对话区** | 消息列表：`<Bubble.List messages={...} loading={...} onEditMessage={...} />`；`loading`、`error`、`retryMessage()` |
-| **输入区** | `sendMessage(content)`（无当前会话时会先 `createSession()`）；`<Sender onSend={...} disabled={loading} />` |
+| **对话区** | 消息列表：`<Bubble.List messages={...} loading={...} onEditMessage={...} />`；`loading`、`error`、`retryMessage()`                  |
+| **输入区** | `sendMessage(content)`（无当前会话时会先 `createSession()`）；`<Sender onSend={...} disabled={loading} />`                          |
 
 ### 4. useAGUI() 返回说明
 
@@ -200,15 +200,15 @@ function Chat() {
 | `loading`        | `boolean`                    | 当前是否在请求中                         |
 | `error`          | `{ message, code? } \| null` | 当前会话错误                             |
 
-| 回调                                        | 说明                                                              |
-| ------------------------------------------- | ----------------------------------------------------------------- |
-| `sendMessage(content, options?)`            | 发送消息并触发 Agent；可传 `sessionId`                            |
-| `editMessage(messageId, content, options?)`  | 编辑消息并分叉：截断该条及之后的所有内容，用新内容重新发送         |
-| `retryMessage(options?)`                    | 重试当前会话最后一条失败的 run                                    |
-| `createSession()`                           | 新建并切换为当前会话                                              |
-| `deleteSession(sessionId)`                  | 删除会话                                                          |
-| `switchSession(sessionId \| null)`          | 切换当前会话                                                      |
-| `updateSessionTitle(sessionId, title)`      | 更新会话标题                                                      |
+| 回调                                        | 说明                                                       |
+| ------------------------------------------- | ---------------------------------------------------------- |
+| `sendMessage(content, options?)`            | 发送消息并触发 Agent；可传 `sessionId`                     |
+| `editMessage(messageId, content, options?)` | 编辑消息并分叉：截断该条及之后的所有内容，用新内容重新发送 |
+| `retryMessage(options?)`                    | 重试当前会话最后一条失败的 run                             |
+| `createSession()`                           | 新建并切换为当前会话                                       |
+| `deleteSession(sessionId)`                  | 删除会话                                                   |
+| `switchSession(sessionId \| null)`          | 切换当前会话                                               |
+| `updateSessionTitle(sessionId, title)`      | 更新会话标题                                               |
 
 ### 5. 会话持久化（core）
 
@@ -221,22 +221,22 @@ function Chat() {
 
 **react-agui-core**
 
-| 名称                                   | 说明                                                                  |
-| -------------------------------------- | --------------------------------------------------------------------- |
-| `AGUIProvider`                         | 根组件，传入 `url`、可选 `headers`、`debug`、`storage`                |
+| 名称                                   | 说明                                                                                           |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `AGUIProvider`                         | 根组件，传入 `url`、可选 `headers`、`debug`、`storage`                                         |
 | `useAGUI()`                            | 返回 sessions、currentSession、loading、error 及 sendMessage、editMessage、retryMessage 等回调 |
-| `createLocalSessionStorage`            | 基于 localStorage 的会话持久化                                        |
-| `getMessageText`, `getSessionMessages` | 工具函数（供 ui 或自定义 UI 使用）                                    |
-| `AGUIClient`                           | 底层客户端，可单独使用（无 React）                                    |
+| `createLocalSessionStorage`            | 基于 localStorage 的会话持久化                                                                 |
+| `getMessageText`, `getSessionMessages` | 工具函数（供 ui 或自定义 UI 使用）                                                             |
+| `AGUIClient`                           | 底层客户端，可单独使用（无 React）                                                             |
 
 **react-agui-ui**（需先配置 Tailwind content）
 
-| 名称            | 说明                                                                 |
-| --------------- | -------------------------------------------------------------------- |
+| 名称            | 说明                                                                                                                 |
+| --------------- | -------------------------------------------------------------------------------------------------------------------- |
 | `Conversations` | 会话列表，需传入 `sessions`、`currentSessionId`、`onNew`、`onSwitch`、`onDelete`，可选 `onEditTitle`、`getItemTitle` |
-| `Bubble`        | 单条消息渲染（文本、工具调用等），可选 `onEdit` 编辑 user 消息       |
-| `Bubble.List`   | 消息列表展示，含角色标签、loading 状态，可选 `onEditMessage` 编辑消息 |
-| `Sender`        | 输入框 + 发送，需传入 `onSend`、`disabled`，可选 `placeholder`        |
+| `Bubble`        | 单条消息渲染（文本、工具调用等），可选 `onEdit` 编辑 user 消息                                                       |
+| `Bubble.List`   | 消息列表展示，含角色标签、loading 状态，可选 `onEditMessage` 编辑消息                                                |
+| `Sender`        | 输入框 + 发送，需传入 `onSend`、`disabled`，可选 `placeholder`                                                       |
 
 ---
 
