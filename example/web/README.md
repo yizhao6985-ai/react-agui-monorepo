@@ -12,7 +12,7 @@ pnpm preview # 预览构建结果
 
 ## 与后端联调
 
-开发模式下 Vite 将 `/agui` 代理到 `http://localhost:3001`。请先在本仓库根目录启动 [example-server](../server/README.md)（`pnpm dev:server`），再执行 `pnpm dev:web`，即可与 LangChain Agent 对话。
+开发模式下 Vite 将 `/agui` 代理到 `http://localhost:3001`。请先在本仓库根目录启动 [example/server](../server/README.md)（`pnpm dev:server`），并确保后端已配置 `OPENAI_API_KEY`，再执行 `pnpm dev:web`，即可与 LangChain Agent 对话。
 
 生产环境可通过环境变量 `VITE_AGUI_URL` 配置后端地址。
 

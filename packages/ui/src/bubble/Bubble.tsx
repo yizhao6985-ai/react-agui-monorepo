@@ -46,7 +46,11 @@ export function Bubble({
 
   if (editing) {
     return (
-      <div className={cls} data-message-id={message.id} data-role={message.role}>
+      <div
+        className={cls}
+        data-message-id={message.id}
+        data-role={message.role}
+      >
         <textarea
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
@@ -60,7 +64,7 @@ export function Bubble({
           onBlur={handleSaveEdit}
           autoFocus
           rows={3}
-          className="w-full rounded-lg border border-zinc-600 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 resize-y"
+          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:border-indigo-500 resize-y"
         />
         <div className="mt-2 flex gap-2">
           <button
@@ -72,7 +76,7 @@ export function Bubble({
           </button>
           <button
             type="button"
-            className="rounded px-3 py-1 text-xs text-zinc-400 hover:text-zinc-200"
+            className="rounded px-3 py-1 text-xs text-zinc-600 hover:text-zinc-800"
             onClick={() => setEditing(false)}
           >
             取消
@@ -84,13 +88,17 @@ export function Bubble({
 
   if (text && nodes.length === 0) {
     return (
-      <div className={cls} data-message-id={message.id} data-role={message.role}>
+      <div
+        className={cls}
+        data-message-id={message.id}
+        data-role={message.role}
+      >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">{text}</div>
           {canEdit && (
             <button
               type="button"
-              className="shrink-0 opacity-60 px-2 py-0.5 rounded text-xs text-zinc-400 hover:opacity-100 hover:bg-zinc-700"
+              className="shrink-0 opacity-60 px-2 py-0.5 rounded text-xs text-zinc-600 hover:opacity-100 hover:bg-zinc-100"
               onClick={handleStartEdit}
               aria-label="编辑"
             >
@@ -111,7 +119,7 @@ export function Bubble({
         {canEdit && (
           <button
             type="button"
-            className="shrink-0 opacity-60 px-2 py-0.5 rounded text-xs text-zinc-400 hover:opacity-100 hover:bg-zinc-700"
+            className="shrink-0 opacity-60 px-2 py-0.5 rounded text-xs text-zinc-600 hover:opacity-100 hover:bg-zinc-100"
             onClick={handleStartEdit}
             aria-label="编辑"
           >

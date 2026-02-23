@@ -11,6 +11,11 @@ export { cn } from "./utils/cn";
 export { Sender } from "./Sender";
 export type { SenderProps } from "./Sender";
 /**
+ * AGUI 级别 loading 状态展示
+ */
+export { Loading } from "./Loading";
+export type { LoadingProps } from "./Loading";
+/**
  * Bubble 模块：单条消息 + 消息列表
  */
 export { BubbleWithList as Bubble, Segment } from "./bubble";

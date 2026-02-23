@@ -43,14 +43,20 @@ export function Sender({
         doSend();
       }
     },
-    [doSend]
+    [doSend],
   );
 
   return (
-    <div className={cn("flex flex-col", className)} role="form">
+    <div
+      className={cn(
+        "flex flex-col rounded-xl border border-zinc-300 bg-white focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500",
+        className,
+      )}
+      role="form"
+    >
       <textarea
         rows={3}
-        className="w-full min-h-[80px] px-4 py-3 rounded-xl border border-zinc-600 bg-zinc-800 text-zinc-100 text-sm resize-y focus:outline-none focus:border-indigo-500 disabled:opacity-60"
+        className="min-h-[80px] w-full resize-y rounded-t-xl border-0 bg-transparent px-4 py-3 text-zinc-900 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-0 disabled:opacity-60"
         placeholder={placeholder}
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -58,15 +64,17 @@ export function Sender({
         disabled={disabled}
         aria-label="消息输入"
       />
-      <button
-        type="button"
-        className="mt-2 px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
-        onClick={doSend}
-        disabled={disabled || !canSend}
-        aria-label="发送"
-      >
-        发送
-      </button>
+      <div className="flex shrink-0 justify-end border-t border-zinc-100 px-3 py-2">
+        <button
+          type="button"
+          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={doSend}
+          disabled={disabled || !canSend}
+          aria-label="发送"
+        >
+          发送
+        </button>
+      </div>
     </div>
   );
 }

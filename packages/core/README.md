@@ -1,6 +1,6 @@
 # react-agui-core
 
-AG-UI 协议的 React 状态层：Provider、hooks、工具函数，**不包含 UI 组件**。带 Tailwind 的 UI 组件在 [packages/ui](../ui/README.md)（react-agui-ui）。
+基于 [AG-UI 协议](https://docs.ag-ui.com/) 的 React 状态层：Provider、hooks、工具函数，**不包含 UI 组件**。带 Tailwind 的 UI 组件在 [packages/ui](../ui/README.md)（react-agui-ui）。
 
 - 完整文档与使用说明见 [仓库根目录 README](../../README.md)。
 

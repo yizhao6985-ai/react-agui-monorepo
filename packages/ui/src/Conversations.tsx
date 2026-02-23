@@ -59,7 +59,7 @@ export function Conversations({
     >
       <button
         type="button"
-        className="mx-2 my-2 px-4 py-2.5 rounded-lg border border-dashed border-zinc-600 text-zinc-400 text-sm hover:border-indigo-500 hover:text-indigo-400"
+        className="mx-2 my-2 px-4 py-2.5 rounded-lg border border-dashed border-zinc-300 text-zinc-600 text-sm hover:border-indigo-500 hover:text-indigo-600"
         onClick={onNew}
         aria-label="新建会话"
       >
@@ -67,7 +67,7 @@ export function Conversations({
       </button>
       <div className="flex flex-col">
         {sessions.length === 0 ? (
-          <div className="p-4 text-zinc-500 text-sm">暂无会话</div>
+          <div className="p-4 text-zinc-600 text-sm">暂无会话</div>
         ) : (
           sessions.map((session) => {
             const isActive = currentSessionId === session.id;
@@ -76,8 +76,8 @@ export function Conversations({
               <div
                 key={session.id}
                 className={cn(
-                  "flex items-center justify-between gap-1 px-4 py-2.5 mx-2 rounded-md text-sm cursor-pointer hover:bg-zinc-800",
-                  isActive ? "bg-zinc-700" : undefined,
+                  "flex items-center justify-between gap-1 px-4 py-2.5 mx-2 rounded-md text-sm cursor-pointer hover:bg-zinc-100",
+                  isActive ? "bg-zinc-100" : undefined,
                 )}
                 role="option"
                 aria-selected={isActive}
@@ -94,7 +94,7 @@ export function Conversations({
                     }}
                     onBlur={handleSaveEdit}
                     autoFocus
-                    className="flex-1 min-w-0 rounded px-2 py-0.5 text-zinc-100 bg-zinc-800 border border-zinc-600 focus:outline-none focus:border-indigo-500 text-sm"
+                    className="flex-1 min-w-0 rounded px-2 py-0.5 text-zinc-900 bg-white border border-zinc-300 focus:outline-none focus:border-indigo-500 text-sm"
                     onClick={(e) => e.stopPropagation()}
                   />
                 ) : (
@@ -106,7 +106,7 @@ export function Conversations({
                   {onEditTitle && !isEditing && (
                     <button
                       type="button"
-                      className="opacity-60 px-2 py-1 rounded text-zinc-400 hover:opacity-100 hover:bg-zinc-600 text-xs"
+                      className="opacity-60 px-2 py-1 rounded text-zinc-600 hover:opacity-100 hover:bg-zinc-200 text-xs"
                       onClick={(e) => handleStartEdit(e, session)}
                       aria-label="重命名"
                     >
@@ -115,7 +115,7 @@ export function Conversations({
                   )}
                   <button
                     type="button"
-                    className="opacity-60 px-2 py-1 rounded text-zinc-400 hover:opacity-100 hover:bg-red-900/40 hover:text-red-300 text-xs"
+                    className="opacity-60 px-2 py-1 rounded text-zinc-600 hover:opacity-100 hover:bg-red-50 hover:text-red-600 text-xs"
                     onClick={(e) => {
                       e.stopPropagation();
                       onDelete(session.id);

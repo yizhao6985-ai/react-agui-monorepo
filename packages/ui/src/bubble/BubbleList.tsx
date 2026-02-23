@@ -3,10 +3,16 @@
  * 支持 ref 调用 scrollTo、scrollTop、scrollDown、getScrollPosition
  */
 
-import React, { forwardRef, useImperativeHandle, useRef } from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from "react";
 import type { AGUIMessage } from "react-agui-core";
 import { cn } from "../utils/cn";
 import { Bubble } from "./Bubble";
+import { Loading } from "../Loading";
 
 export type BubbleListRoleLabelFn = (role?: string) => string;
 
@@ -54,6 +60,11 @@ export const BubbleList = forwardRef<BubbleListRef, BubbleListProps>(
     ref,
   ) {
     const scrollRef = useRef<HTMLDivElement>(null);
+    const bottomSentinelRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      bottomSentinelRef.current?.scrollIntoView({ behavior: "auto" });
+    }, [messages.length, loading]);
 
     useImperativeHandle(ref, () => ({
       scrollTo: (value: number) => {
@@ -90,24 +101,14 @@ export const BubbleList = forwardRef<BubbleListRef, BubbleListProps>(
         <div className={cn("flex flex-col", listClassName)}>
           {messages.map((msg) => (
             <div key={msg.id} className={cn("mb-5", itemClassName)}>
-              <div className="mb-1 text-xs text-zinc-500">
+              <div className="mb-1 text-xs text-zinc-600">
                 {getRoleLabel(msg.role)}
               </div>
               <Bubble message={msg} onEdit={onEditMessage} />
             </div>
           ))}
-          {loading && (
-            <div className="mb-5">
-              <div className="mb-1 text-xs text-zinc-500">助手</div>
-              <div
-                className="py-2 text-sm text-zinc-500"
-                role="status"
-                aria-label="思考中"
-              >
-                {loadingText}
-              </div>
-            </div>
-          )}
+          <Loading loading={loading} text={loadingText} />
+          <div ref={bottomSentinelRef} className="h-0 shrink-0" aria-hidden />
         </div>
       </div>
     );

@@ -1,17 +1,21 @@
 /**
- * HTTP routes and SSE utilities.
- * Handles request/response, delegates agent logic to agent module.
+ * HTTP 路由与 SSE 工具
+ * 处理请求/响应，将 Agent 逻辑委托给 agent 模块
  */
 
 import { Router, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { runAgent, type RunAgentInput } from "./agent.js";
+import {
+  runAgent,
+  type RunAgentInput,
+  type CreatedAgent,
+} from "../agent/index.js";
 
 function sendSSE(res: Response, event: Record<string, unknown>) {
   res.write(`data: ${JSON.stringify(event)}\n\n`);
 }
 
-export function createAgentRouter(): Router {
+export function createAgentRouter(agent: CreatedAgent): Router {
   const router = Router();
 
   router.post("/", async (req: Request, res: Response) => {
@@ -25,7 +29,10 @@ export function createAgentRouter(): Router {
     res.flushHeaders();
 
     try {
-      for await (const event of runAgent({ ...input, threadId, runId })) {
+      for await (const event of runAgent(
+        { ...input, threadId, runId },
+        agent,
+      )) {
         sendSSE(res, event);
       }
     } finally {

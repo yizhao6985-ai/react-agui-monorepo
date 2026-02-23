@@ -1,13 +1,12 @@
 /**
- * Application configuration.
- * Model config from env with defaults; API key from .env only.
+ * Agent 配置：端口、模型（由环境变量决定，使用 OpenAI）
  */
+
+const DEFAULT_MODEL = "gpt-4o-mini" as const;
 
 export interface ModelConfig {
   modelName: string;
   temperature: number;
-  /** OpenAI 兼容 API 的 base URL，如 OpenRouter、自建代理等 */
-  baseURL?: string;
 }
 
 export interface AppConfig {
@@ -17,10 +16,10 @@ export interface AppConfig {
 }
 
 function getModelConfig(): ModelConfig {
+  const temperature = Number(process.env.TEMPERATURE) || 1;
   return {
-    modelName: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
-    temperature: Number(process.env.TEMPERATURE) || 1,
-    baseURL: process.env.OPENAI_BASE_URL || undefined,
+    modelName: process.env.OPENAI_MODEL ?? DEFAULT_MODEL,
+    temperature,
   };
 }
 

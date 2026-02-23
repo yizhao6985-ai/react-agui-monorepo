@@ -2,8 +2,8 @@
  * AGUI 协议封装层：使用 @ag-ui/client 发请求与消费事件流，聚合为 Session/Run/Message
  */
 
-import { State, type Message, type RunAgentInput } from '@ag-ui/core';
-import { HttpAgent, type RunAgentParameters } from '@ag-ui/client';
+import { State, type Message, type RunAgentInput } from "@ag-ui/core";
+import { HttpAgent, type RunAgentParameters } from "@ag-ui/client";
 import {
   AGUIDebug,
   eventToContent,
@@ -14,8 +14,14 @@ import {
   getPreviousRunState,
   normalizeMessage,
   toRunAgentMessages,
-} from '../utils';
-import type { AGUIMessage, MessageEventType, Run, Session } from '../types';
+} from "../utils";
+import type {
+  AGUIMessage,
+  MessageEventType,
+  Run,
+  Session,
+  ToolSegment,
+} from "../types";
 
 export interface AGUIClientOptions {
   /** AG-UI 服务端点，例如 https://api.example.com/agui */
@@ -45,12 +51,15 @@ export class AGUIClient {
   /** 当前流式消息的 messageId -> AGUIMessage 映射（用于聚合 content） */
   private streamingMessages = new Map<string, AGUIMessage>();
 
+  /** 工具调用 ID -> 父消息 ID（TOOL_CALL_* 事件嵌套在 parentMessageId 对应的 message 下） */
+  private streamingToolCalls = new Map<string, string>();
+
   private debug: AGUIDebug;
 
   constructor(options: AGUIClientOptions) {
     this.options = options;
     this.debug = new AGUIDebug(options.debug ?? false);
-    const baseUrl = options.url.replace(/\/$/, '');
+    const baseUrl = options.url.replace(/\/$/, "");
     this.httpAgent = new HttpAgent({
       url: baseUrl,
       headers: options.headers ?? {},
@@ -87,104 +96,155 @@ export class AGUIClient {
     return session;
   }
 
+  /** 按 messageId 解析父消息：先查流式表，再查当前 run 的 messages（支持工具调用先于 TEXT_MESSAGE_END 到达的嵌套） */
+  private resolveMessage(
+    session: Session,
+    messageId: string,
+  ): AGUIMessage | undefined {
+    const fromStreaming = this.streamingMessages.get(messageId);
+    if (fromStreaming) return fromStreaming;
+    const currentRun = getCurrentRun(session);
+    return currentRun?.messages.find((m) => m.id === messageId);
+  }
+
   /** 将事件追加到当前 run 的 messages（Run 包含 AGUIMessage，AGUIMessage 包含原始事件） */
   private appendContent(session: Session, content: MessageEventType): void {
     const currentRun = getCurrentRun(session);
 
-    if (content.kind === 'TEXT_MESSAGE_START') {
-      const msg: AGUIMessage = {
-        id: content.messageId,
-        role: content.role,
-        renderType: 'text',
-        segment: [],
-        events: [content],
-        timestamp: Date.now(),
-      };
-      this.streamingMessages.set(content.messageId, msg);
-      if (currentRun) currentRun.messages.push(msg);
-      return;
-    }
-    if (content.kind === 'TEXT_MESSAGE_CONTENT') {
-      const msg = this.streamingMessages.get(content.messageId);
-      if (msg) {
-        msg.events.push(content);
-        const textPart = msg.events
-          .filter((c): c is MessageEventType & { kind: 'TEXT_MESSAGE_CONTENT' } => c.kind === 'TEXT_MESSAGE_CONTENT')
-          .map((c) => c.delta)
-          .join('');
-        msg.segment = [{ type: 'text', content: textPart }];
-      }
-      return;
-    }
-    if (content.kind === 'TEXT_MESSAGE_END') {
-      this.streamingMessages.delete(content.messageId);
-      return;
-    }
-    if (content.kind === 'MESSAGES_SNAPSHOT') {
-      if (currentRun) {
-        currentRun.messages = (content.messages ?? []).map((m) => normalizeMessage(m));
-      }
-      this.streamingMessages.clear();
-      return;
-    }
-    if (content.kind === 'STATE_SNAPSHOT') {
-      if (currentRun) currentRun.state = content.snapshot;
-      return;
-    }
-    if (content.kind === 'RUN_STARTED') {
-      return;
-    }
-    if (content.kind === 'RUN_FINISHED') {
+    // --- Run 生命周期 ---
+    if (content.kind === "RUN_STARTED") return;
+    if (content.kind === "RUN_FINISHED") {
       if (currentRun) currentRun.isRunning = false;
       return;
     }
-    if (content.kind === 'RUN_ERROR') {
+    if (content.kind === "RUN_ERROR") {
       if (currentRun) {
         currentRun.isRunning = false;
         currentRun.error = { message: content.message, code: content.code };
       }
       return;
     }
-    // 其他事件：追加到当前 run 最后一条消息，或作为独立“虚拟消息”
-    const runMessages = currentRun?.messages ?? [];
-    const last = runMessages[runMessages.length - 1];
-    if (last) {
-      last.events.push(content);
-      if (content.kind === 'TOOL_CALL_START') {
-        const existing = last.segment.find(
-          (s): s is import('../types').ToolSegment =>
-            s.type === 'tool' && s.toolCallId === content.toolCallId,
+
+    // --- 文本消息流 ---
+    if (content.kind === "TEXT_MESSAGE_START") {
+      const existing = currentRun?.messages.find(
+        (m) => m.id === content.messageId,
+      );
+      const msg: AGUIMessage = existing
+        ? {
+            ...existing,
+            role: content.role,
+            events: [...existing.events, content],
+          }
+        : {
+            id: content.messageId,
+            role: content.role,
+            renderType: "text",
+            segment: [],
+            events: [content],
+            timestamp: Date.now(),
+          };
+      this.streamingMessages.set(content.messageId, msg);
+      if (currentRun && !existing) currentRun.messages.push(msg);
+      return;
+    }
+    if (content.kind === "TEXT_MESSAGE_CONTENT") {
+      const msg = this.streamingMessages.get(content.messageId);
+      if (msg) {
+        msg.events.push(content);
+        const textPart = msg.events
+          .filter(
+            (c): c is MessageEventType & { kind: "TEXT_MESSAGE_CONTENT" } =>
+              c.kind === "TEXT_MESSAGE_CONTENT",
+          )
+          .map((c) => c.delta)
+          .join("");
+        msg.segment = [{ type: "text", content: textPart }];
+      }
+      return;
+    }
+    if (content.kind === "TEXT_MESSAGE_END") {
+      this.streamingMessages.delete(content.messageId);
+      return;
+    }
+
+    // --- 工具调用（TOOL_CALL_* 形成 segment，通过 parentMessageId 挂在对应 message 下，可嵌套在文本消息流中） ---
+    if (content.kind === "TOOL_CALL_START") {
+      const runMessages = currentRun?.messages ?? [];
+      const last = runMessages[runMessages.length - 1];
+      const parentMessageId = content.parentMessageId ?? last?.id;
+      if (!parentMessageId) return;
+      let parent = this.resolveMessage(session, parentMessageId);
+      if (!parent && currentRun) {
+        const placeholder: AGUIMessage = {
+          id: parentMessageId,
+          role: "assistant",
+          renderType: "text",
+          segment: [],
+          events: [],
+          timestamp: Date.now(),
+        };
+        currentRun.messages.push(placeholder);
+        this.streamingMessages.set(parentMessageId, placeholder);
+        parent = placeholder;
+      }
+      if (parent) {
+        parent.events.push(content);
+        const existing = parent.segment.find(
+          (s): s is ToolSegment =>
+            s.type === "tool" && s.toolCallId === content.toolCallId,
         );
         if (!existing) {
-          last.segment.push({
-            type: 'tool',
+          parent.segment.push({
+            type: "tool",
             toolCallId: content.toolCallId,
             toolCallName: content.toolCallName,
           });
         }
-      } else if (content.kind === 'TOOL_CALL_ARGS') {
-        const seg = last.segment.find(
-          (s): s is import('../types').ToolSegment =>
-            s.type === 'tool' && s.toolCallId === content.toolCallId,
+        this.streamingToolCalls.set(content.toolCallId, parentMessageId);
+      }
+      return;
+    }
+    if (content.kind === "TOOL_CALL_ARGS") {
+      const parentMessageId = this.streamingToolCalls.get(content.toolCallId);
+      if (!parentMessageId) return;
+      const parent = this.resolveMessage(session, parentMessageId);
+      if (parent) {
+        parent.events.push(content);
+        const seg = parent.segment.find(
+          (s): s is ToolSegment =>
+            s.type === "tool" && s.toolCallId === content.toolCallId,
         );
-        if (seg) seg.args = (seg.args ?? '') + content.delta;
-      } else if (content.kind === 'TOOL_CALL_RESULT') {
-        const seg = last.segment.find(
-          (s): s is import('../types').ToolSegment =>
-            s.type === 'tool' && s.toolCallId === content.toolCallId,
+        if (seg) seg.args = (seg.args ?? "") + content.delta;
+      }
+      return;
+    }
+    if (content.kind === "TOOL_CALL_RESULT") {
+      const parentMessageId = this.streamingToolCalls.get(content.toolCallId);
+      if (!parentMessageId) return;
+      const parent = this.resolveMessage(session, parentMessageId);
+      if (parent) {
+        parent.events.push(content);
+        const seg = parent.segment.find(
+          (s): s is ToolSegment =>
+            s.type === "tool" && s.toolCallId === content.toolCallId,
         );
         if (seg) seg.result = content.content;
       }
-    } else if (currentRun) {
-      const virtualMsg: AGUIMessage = {
-        id: `evt_${Date.now()}`,
-        renderType: 'text',
-        segment: [],
-        events: [content],
-        timestamp: Date.now(),
-      };
-      currentRun.messages.push(virtualMsg);
+      // 协议顺序为 Start → Args → End → Result；收到 Result 后才不再需要 toolCallId 映射
+      this.streamingToolCalls.delete(content.toolCallId);
+      return;
     }
+    if (content.kind === "TOOL_CALL_END") {
+      const parentMessageId = this.streamingToolCalls.get(content.toolCallId);
+      if (!parentMessageId) return;
+      const parent = this.resolveMessage(session, parentMessageId);
+      if (parent) parent.events.push(content);
+      // 不在此处 delete：End 仅表示参数传完，Result 稍后才到，需保留映射供 TOOL_CALL_RESULT 查找
+      return;
+    }
+
+    // 未考虑到的事件不处理
   }
 
   /**
@@ -192,7 +252,8 @@ export class AGUIClient {
    */
   async run(parameters: RunAgentParameters, sessionId?: string): Promise<void> {
     const sid = sessionId ?? this.state.currentSessionId;
-    if (sid == null) throw new Error('run() requires sessionId or currentSessionId');
+    if (sid == null)
+      throw new Error("run() requires sessionId or currentSessionId");
     this.state.currentSessionId = sid;
     const session = this.ensureSession(sid);
     const runId = parameters.runId ?? generateRunId();
@@ -218,15 +279,20 @@ export class AGUIClient {
       messages: toRunAgentMessages(run.messages) as Message[],
       ...(parameters.tools && { tools: parameters.tools }),
       ...(parameters.context && { context: parameters.context }),
-      ...(parameters.forwardedProps !== undefined && { forwardedProps: parameters.forwardedProps }),
+      ...(parameters.forwardedProps !== undefined && {
+        forwardedProps: parameters.forwardedProps,
+      }),
     } as RunAgentInput;
 
-    const stateKeys = input.state && typeof input.state === 'object' ? Object.keys(input.state as object) : [];
+    const stateKeys =
+      input.state && typeof input.state === "object"
+        ? Object.keys(input.state as object)
+        : [];
     this.debug.runStart({
       threadId: input.threadId,
       runId: input.runId,
       messagesCount: input.messages?.length ?? 0,
-      stateKeys: stateKeys.length ? stateKeys : '(empty)',
+      stateKeys: stateKeys.length ? stateKeys : "(empty)",
       toolsCount: parameters.tools?.length ?? 0,
       contextCount: parameters.context?.length ?? 0,
     });
@@ -252,7 +318,8 @@ export class AGUIClient {
             errorName: err?.name,
             stack: err?.stack,
           });
-          const currentRun = getCurrentRun(session) ?? session.runs[session.runs.length - 1];
+          const currentRun =
+            getCurrentRun(session) ?? session.runs[session.runs.length - 1];
           if (currentRun) {
             currentRun.isRunning = false;
             currentRun.error = { message: err?.message ?? String(err) };
@@ -262,7 +329,11 @@ export class AGUIClient {
         },
         complete: () => {
           const duration = runStartTime ? Date.now() - runStartTime : 0;
-          this.debug.runComplete({ sessionId: session.id, runId, durationMs: duration });
+          this.debug.runComplete({
+            sessionId: session.id,
+            runId,
+            durationMs: duration,
+          });
           const lastRun = session.runs[session.runs.length - 1];
           if (lastRun) lastRun.isRunning = false;
           this.notify();
@@ -292,7 +363,10 @@ export class AGUIClient {
    * 向指定会话追加一条用户消息并创建新 Run（用于视图层 sendMessage）
    * 返回 runId 与 run，供 run() 复用该 run 并填充 toRunAgentMessages(run.messages)
    */
-  appendUserMessage(sessionId: string, content: string): { runId: string; run: Run; message: AGUIMessage } {
+  appendUserMessage(
+    sessionId: string,
+    content: string,
+  ): { runId: string; run: Run; message: AGUIMessage } {
     const session = this.state.sessions.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
     // 首次用户消息时，用内容前 20 字作为会话标题
@@ -304,13 +378,13 @@ export class AGUIClient {
     const id = generateMessageId();
     const msg: AGUIMessage = {
       id,
-      role: 'user',
-      renderType: 'text',
-      segment: [{ type: 'text', content }],
+      role: "user",
+      renderType: "text",
+      segment: [{ type: "text", content }],
       events: [
-        { kind: 'TEXT_MESSAGE_START', messageId: id, role: 'user' },
-        { kind: 'TEXT_MESSAGE_CONTENT', messageId: id, delta: content },
-        { kind: 'TEXT_MESSAGE_END', messageId: id },
+        { kind: "TEXT_MESSAGE_START", messageId: id, role: "user" },
+        { kind: "TEXT_MESSAGE_CONTENT", messageId: id, delta: content },
+        { kind: "TEXT_MESSAGE_END", messageId: id },
       ],
       timestamp: Date.now(),
     };
@@ -375,7 +449,9 @@ export class AGUIClient {
       const runs = Array.isArray((s as Session).runs)
         ? (s as Session).runs.map((r) => ({
             ...r,
-            messages: (Array.isArray(r.messages) ? r.messages : []).map((m) => normalizeMessage(m)),
+            messages: (Array.isArray(r.messages) ? r.messages : []).map((m) =>
+              normalizeMessage(m),
+            ),
             isRunning: false,
             error: undefined,
           }))
@@ -389,6 +465,7 @@ export class AGUIClient {
     this.state.sessions = next;
     this.state.currentSessionId = currentSessionId;
     this.streamingMessages.clear();
+    this.streamingToolCalls.clear();
     this.notify();
   }
 }

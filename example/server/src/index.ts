@@ -7,14 +7,9 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { createAgentRouter } from "./routes.js";
-import { getConfig } from "./config.js";
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.use("/", createAgentRouter());
+import { createServerAgent } from "./agent/index.js";
+import { createAgentRouter } from "./routes/index.js";
+import { getConfig } from "./agent/config/index.js";
 
 const { port, openaiApiKey } = getConfig();
 
@@ -27,8 +22,16 @@ if (!openaiApiKey && !process.env.CI) {
   process.exit(1);
 }
 
-app.listen(port, () => {
-  console.log(
-    `Example AG-UI agent server listening on http://localhost:${port}`,
-  );
-});
+(async () => {
+  const agent = await createServerAgent();
+  const app = express();
+  app.use(cors());
+  app.use(express.json());
+  app.use("/", createAgentRouter(agent));
+
+  app.listen(port, () => {
+    console.log(
+      `Example AG-UI agent server listening on http://localhost:${port}`,
+    );
+  });
+})();

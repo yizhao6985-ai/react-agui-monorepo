@@ -42,21 +42,13 @@ pnpm dev:web          # 启动示例前端（/agui 代理到后端）
    cp .env.example .env
    ```
 
-2. 编辑 `.env`，填入 OpenAI API Key（从 [OpenAI API Keys](https://platform.openai.com/api-keys) 获取）：
-
-   ```
-   OPENAI_API_KEY=sk-your-api-key-here
-   OPENAI_MODEL=gpt-4o-mini
-   PORT=3001
-   ```
-
-   使用 OpenRouter、自建代理等 OpenAI 兼容端点时，可设置 `OPENAI_BASE_URL`（如 `https://openrouter.ai/api/v1`）。
+2. 编辑 `.env`，填入 **OpenAI API Key**（[OpenAI API Keys](https://platform.openai.com/api-keys)）；可选设置 `OPENAI_MODEL`（默认 `gpt-4o-mini`）、`TEMPERATURE`、`PORT`。
 
 3. 在**仓库根目录**启动后端：
    ```bash
    pnpm dev:server
    ```
-   默认监听 `http://localhost:3001`。
+   默认监听 `http://localhost:3001`。后端使用 LangChain 的 `initChatModel` 初始化 OpenAI 模型，详见 [example/server/README.md](example/server/README.md)。
 
 ### 2. 前端配置（example/web）
 

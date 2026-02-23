@@ -18,9 +18,9 @@ export default function App() {
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
-      <aside className="flex w-60 shrink-0 flex-col overflow-hidden border-r border-zinc-800 bg-zinc-900">
-        <div className="border-b border-zinc-800 px-4 py-3">
-          <strong className="text-zinc-100">会话</strong>
+      <aside className="flex w-60 shrink-0 flex-col overflow-hidden border-r border-zinc-200 bg-zinc-50">
+        <div className="border-b border-zinc-200 px-4 py-3">
+          <strong className="text-zinc-900">会话</strong>
         </div>
         <Conversations
           sessions={sessions}
@@ -37,13 +37,13 @@ export default function App() {
         <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden p-6">
           {error && (
             <div
-              className="mb-3 flex items-center justify-between gap-2 rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-300"
+              className="mb-3 flex items-center justify-between gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
               role="alert"
             >
               <span>{error.message}</span>
               <button
                 type="button"
-                className="shrink-0 rounded px-2 py-1 text-xs font-medium hover:bg-red-900/50"
+                className="shrink-0 rounded px-2 py-1 text-xs font-medium hover:bg-red-100"
                 onClick={() => retryMessage()}
               >
                 重试
@@ -52,7 +52,7 @@ export default function App() {
           )}
 
           {!currentSession && (
-            <div className="flex flex-1 items-center justify-center text-zinc-500 text-sm">
+            <div className="flex flex-1 items-center justify-center text-zinc-600 text-sm">
               请从左侧新建或选择一个会话
             </div>
           )}
@@ -67,7 +67,7 @@ export default function App() {
             </div>
           ) : null}
 
-          <div className="shrink-0 border-t border-zinc-800 pt-4">
+          <div className="shrink-0 border-t border-zinc-200 pt-4">
             <Sender onSend={sendMessage} disabled={loading} />
           </div>
         </div>
