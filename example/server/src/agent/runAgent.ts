@@ -57,7 +57,8 @@ export async function* runAgent(
       const last = messages[messages.length - 1];
       if (!last) continue;
 
-      if (step === "model") {
+      // LangChain ReAct Agent 的图节点名为 "model_request"（见 langchain/dist/agents/nodes/utils.js），不是 "model"
+      if (step === "model" || step === "model_request") {
         const text = getLastMessageContent(last);
         if (text) {
           yield { type: "TEXT_MESSAGE_CONTENT", messageId, delta: text };

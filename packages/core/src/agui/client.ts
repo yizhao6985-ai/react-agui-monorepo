@@ -18,6 +18,7 @@ import {
 import type {
   AGUIMessage,
   MessageEventType,
+  MessageSegment,
   Run,
   Session,
   ToolSegment,
@@ -152,14 +153,13 @@ export class AGUIClient {
       const msg = this.streamingMessages.get(content.messageId);
       if (msg) {
         msg.events.push(content);
-        const textPart = msg.events
-          .filter(
-            (c): c is MessageEventType & { kind: "TEXT_MESSAGE_CONTENT" } =>
-              c.kind === "TEXT_MESSAGE_CONTENT",
-          )
-          .map((c) => c.delta)
-          .join("");
-        msg.segment = [{ type: "text", content: textPart }];
+        const segments = msg.segment as MessageSegment[];
+        const last = segments[segments.length - 1];
+        if (last && last.type === "text") {
+          last.content += content.delta;
+        } else {
+          segments.push({ type: "text", content: content.delta });
+        }
       }
       return;
     }

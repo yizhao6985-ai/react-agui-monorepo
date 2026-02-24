@@ -27,64 +27,75 @@ function ToolSegmentView({
   const isLoading = !isComplete;
 
   const header = (
-    <>
-      <span className="inline-flex items-center gap-1.5">
-        [Tool: {toolCallName}]
+    <div className="flex w-full items-center gap-2">
+      <div className="flex items-center gap-1.5 text-[11px] text-zinc-600">
+        <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-indigo-50 text-[10px] font-semibold text-indigo-500">
+          T
+        </span>
+        <span className="truncate">
+          工具 ·{" "}
+          <span className="font-medium text-zinc-800">{toolCallName}</span>
+        </span>
         {isLoading && (
           <span
-            className="inline-block size-3 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent"
+            className="inline-block h-3 w-3 animate-spin rounded-full border-[1.5px] border-zinc-300 border-t-transparent"
             aria-label="调用中"
           />
         )}
-      </span>
-      {isComplete && (
-        <span className="text-emerald-600" title={result}>
-          ✓
-        </span>
-      )}
+        {isComplete && (
+          <span className="ml-0.5 text-emerald-500" title={result}>
+            ✓
+          </span>
+        )}
+      </div>
       {hasDetails && (
-        <span className="text-zinc-500" aria-hidden>
-          {expanded ? "▼" : "▶"}
+        <span className="ml-auto text-[10px] text-zinc-400" aria-hidden>
+          {expanded ? "收起" : "展开"}
         </span>
       )}
-    </>
+    </div>
   );
 
   return (
-    <span className="inline-flex flex-col gap-1">
+    <div className="flex my-4 w-full flex-col gap-1 text-[13px] leading-relaxed">
       {hasDetails ? (
         <button
           type="button"
           onClick={() => setExpanded((e) => !e)}
-          className="inline-flex items-center gap-1.5 rounded bg-zinc-200 px-2 py-0.5 text-left text-xs text-zinc-700 hover:bg-zinc-300 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+          className="flex w-full items-center gap-1.5 rounded-lg border border-zinc-200 bg-white/80 px-2.5 py-1.5 text-left text-[11px] text-zinc-700 shadow-sm hover:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
         >
           {header}
         </button>
       ) : (
-        <span className="inline-flex items-center gap-1.5 rounded bg-zinc-200 px-2 py-0.5 text-xs text-zinc-700">
+        <span className="inline-flex w-full items-center gap-1.5 rounded-lg border border-zinc-200 bg-white/80 px-2.5 py-1.5 text-[11px] text-zinc-700 shadow-sm">
           {header}
         </span>
       )}
       {expanded && hasDetails && (
-        <pre className="max-h-48 overflow-auto rounded border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-[11px] text-zinc-600 whitespace-pre-wrap break-words">
+        <div className="max-h-80 w-full space-y-3 overflow-auto rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[11px] text-zinc-700 shadow-sm">
           {args != null && args !== "" && (
-            <>
-              <span className="font-medium text-zinc-500">args</span>
-              {"\n"}
-              {args}
-              {result != null && result !== "" && "\n\n"}
-            </>
+            <div className="space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                args
+              </div>
+              <pre className="whitespace-pre-wrap break-words rounded bg-zinc-50 px-2 py-1 text-[11px] text-zinc-700">
+                {args}
+              </pre>
+            </div>
           )}
           {result != null && result !== "" && (
-            <>
-              <span className="font-medium text-zinc-500">result</span>
-              {"\n"}
-              {result}
-            </>
+            <div className="space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                result
+              </div>
+              <pre className="whitespace-pre-wrap break-words rounded bg-zinc-50 px-2 py-1 text-[11px] text-zinc-700">
+                {result}
+              </pre>
+            </div>
           )}
-        </pre>
+        </div>
       )}
-    </span>
+    </div>
   );
 }
 
