@@ -120,7 +120,7 @@ export type AGUIMessages = AGUIMessage[];
 
 /**
  * 一次 Agent 运行：从 RUN_STARTED 到 RUN_FINISHED 的 AGUIMessage 集合
- * runId 由前端在用户发送消息时创建，属于 run 维度而非 session
+ * runId 由前端在用户发送消息时创建，属于 run 维度而非 thread
  */
 export interface Run {
   /** 本次运行的 ID（前端创建，如 run_${Date.now()}） */
@@ -141,24 +141,24 @@ export interface Run {
 export type Runs = Run[];
 
 /**
- * 会话
- * 不包含 messages、state、isRunning、error；均由 Run 维度表示，可通过 getSessionMessages / getCurrentRun 等派生
+ * 线程（对话线）
+ * 不包含 messages、state、isRunning、error；均由 Run 维度表示，可通过 getThreadMessages / getCurrentRun 等派生
  */
-export interface Session {
-  /** 会话 ID，同时作为 AGUI 协议的 threadId */
+export interface Thread {
+  /** 线程 ID，同时作为 AGUI 协议的 threadId */
   id: string;
   /** 每次调用的 run 记录（RUN_STARTED 到 RUN_FINISHED），每条 Run 包含 messages、state、isRunning、error */
   runs: Runs;
-  /** 会话标题 */
+  /** 线程标题 */
   title?: string;
 }
 
 /**
- * SDK 内部/对外状态（currentSession 由 consumer 根据 currentSessionId + sessions 派生）
+ * SDK 内部/对外状态（currentThread 由 consumer 根据 currentThreadId + threads 派生）
  */
 export interface AGUIState {
-  /** 当前会话 ID */
-  currentSessionId: string | null;
-  /** 会话映射 sessionId -> Session */
-  sessions: Map<string, Session>;
+  /** 当前线程 ID */
+  currentThreadId: string | null;
+  /** 线程映射 threadId -> Thread */
+  threads: Map<string, Thread>;
 }

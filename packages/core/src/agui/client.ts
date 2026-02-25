@@ -1,5 +1,5 @@
 /**
- * AGUI 协议封装层：使用 @ag-ui/client 发请求与消费事件流，聚合为 Session/Run/Message
+ * AGUI 协议封装层：使用 @ag-ui/client 发请求与消费事件流，聚合为 Thread/Run/Message
  */
 
 import { State, type Message, type RunAgentInput } from "@ag-ui/core";
@@ -20,7 +20,7 @@ import type {
   MessageEventType,
   MessageSegment,
   Run,
-  Session,
+  Thread,
   ToolSegment,
 } from "../types";
 
@@ -36,16 +36,16 @@ export interface AGUIClientOptions {
 type Listener = (state: AGUIClientState) => void;
 
 export interface AGUIClientState {
-  currentSessionId: string | null;
-  sessions: Map<string, Session>;
+  currentThreadId: string | null;
+  threads: Map<string, Thread>;
 }
 
 export class AGUIClient {
   private options: AGUIClientOptions;
   private httpAgent: HttpAgent;
   private state: AGUIClientState = {
-    currentSessionId: null,
-    sessions: new Map(),
+    currentThreadId: null,
+    threads: new Map(),
   };
   private listeners = new Set<Listener>();
 
@@ -78,39 +78,39 @@ export class AGUIClient {
 
   private notify(): void {
     const state: AGUIClientState = {
-      currentSessionId: this.state.currentSessionId,
-      sessions: new Map(this.state.sessions),
+      currentThreadId: this.state.currentThreadId,
+      threads: new Map(this.state.threads),
     };
     this.listeners.forEach((fn) => fn(state));
   }
 
-  private createEmptySession(id: string): Session {
+  private createEmptyThread(id: string): Thread {
     return { id, runs: [] };
   }
 
-  private ensureSession(sessionId: string): Session {
-    let session = this.state.sessions.get(sessionId);
-    if (!session) {
-      session = this.createEmptySession(sessionId);
-      this.state.sessions.set(sessionId, session);
+  private ensureThread(threadId: string): Thread {
+    let thread = this.state.threads.get(threadId);
+    if (!thread) {
+      thread = this.createEmptyThread(threadId);
+      this.state.threads.set(threadId, thread);
     }
-    return session;
+    return thread;
   }
 
   /** 按 messageId 解析父消息：先查流式表，再查当前 run 的 messages（支持工具调用先于 TEXT_MESSAGE_END 到达的嵌套） */
   private resolveMessage(
-    session: Session,
+    thread: Thread,
     messageId: string,
   ): AGUIMessage | undefined {
     const fromStreaming = this.streamingMessages.get(messageId);
     if (fromStreaming) return fromStreaming;
-    const currentRun = getCurrentRun(session);
+    const currentRun = getCurrentRun(thread);
     return currentRun?.messages.find((m) => m.id === messageId);
   }
 
   /** 将事件追加到当前 run 的 messages（Run 包含 AGUIMessage，AGUIMessage 包含原始事件） */
-  private appendContent(session: Session, content: MessageEventType): void {
-    const currentRun = getCurrentRun(session);
+  private appendContent(thread: Thread, content: MessageEventType): void {
+    const currentRun = getCurrentRun(thread);
 
     // --- Run 生命周期 ---
     if (content.kind === "RUN_STARTED") return;
@@ -174,7 +174,7 @@ export class AGUIClient {
       const last = runMessages[runMessages.length - 1];
       const parentMessageId = content.parentMessageId ?? last?.id;
       if (!parentMessageId) return;
-      let parent = this.resolveMessage(session, parentMessageId);
+      let parent = this.resolveMessage(thread, parentMessageId);
       if (!parent && currentRun) {
         const placeholder: AGUIMessage = {
           id: parentMessageId,
@@ -208,7 +208,7 @@ export class AGUIClient {
     if (content.kind === "TOOL_CALL_ARGS") {
       const parentMessageId = this.streamingToolCalls.get(content.toolCallId);
       if (!parentMessageId) return;
-      const parent = this.resolveMessage(session, parentMessageId);
+      const parent = this.resolveMessage(thread, parentMessageId);
       if (parent) {
         parent.events.push(content);
         const seg = parent.segment.find(
@@ -222,7 +222,7 @@ export class AGUIClient {
     if (content.kind === "TOOL_CALL_RESULT") {
       const parentMessageId = this.streamingToolCalls.get(content.toolCallId);
       if (!parentMessageId) return;
-      const parent = this.resolveMessage(session, parentMessageId);
+      const parent = this.resolveMessage(thread, parentMessageId);
       if (parent) {
         parent.events.push(content);
         const seg = parent.segment.find(
@@ -238,7 +238,7 @@ export class AGUIClient {
     if (content.kind === "TOOL_CALL_END") {
       const parentMessageId = this.streamingToolCalls.get(content.toolCallId);
       if (!parentMessageId) return;
-      const parent = this.resolveMessage(session, parentMessageId);
+      const parent = this.resolveMessage(thread, parentMessageId);
       if (parent) parent.events.push(content);
       // 不在此处 delete：End 仅表示参数传完，Result 稍后才到，需保留映射供 TOOL_CALL_RESULT 查找
       return;
@@ -250,14 +250,14 @@ export class AGUIClient {
   /**
    * 运行 Agent：通过 HttpAgent.run(input) 一次传入完整 RunAgentInput（threadId / messages / state）
    */
-  async run(parameters: RunAgentParameters, sessionId?: string): Promise<void> {
-    const sid = sessionId ?? this.state.currentSessionId;
-    if (sid == null)
-      throw new Error("run() requires sessionId or currentSessionId");
-    this.state.currentSessionId = sid;
-    const session = this.ensureSession(sid);
+  async run(parameters: RunAgentParameters, threadId?: string): Promise<void> {
+    const tid = threadId ?? this.state.currentThreadId;
+    if (tid == null)
+      throw new Error("run() requires threadId or currentThreadId");
+    this.state.currentThreadId = tid;
+    const thread = this.ensureThread(tid);
     const runId = parameters.runId ?? generateRunId();
-    let run = session.runs.find((r) => r.runId === runId);
+    let run = thread.runs.find((r) => r.runId === runId);
     if (!run) {
       run = {
         runId,
@@ -265,7 +265,7 @@ export class AGUIClient {
         isRunning: true,
         timestamp: Date.now(),
       };
-      session.runs.push(run);
+      thread.runs.push(run);
     } else {
       run.isRunning = true;
       run.error = undefined;
@@ -273,9 +273,9 @@ export class AGUIClient {
     this.notify();
 
     const input = {
-      threadId: session.id,
+      threadId: thread.id,
       runId,
-      state: (getPreviousRunState(session) ?? {}) as State,
+      state: (getPreviousRunState(thread) ?? {}) as State,
       messages: toRunAgentMessages(run.messages) as Message[],
       ...(parameters.tools && { tools: parameters.tools }),
       ...(parameters.context && { context: parameters.context }),
@@ -306,20 +306,20 @@ export class AGUIClient {
           this.debug.event(ev);
           const content = eventToContent(event as Record<string, unknown>);
           if (content) {
-            this.appendContent(session, content);
+            this.appendContent(thread, content);
             this.notify();
           }
         },
         error: (err) => {
           this.debug.runFailed({
-            sessionId: session.id,
+            threadId: thread.id,
             runId,
             errorMessage: err?.message ?? String(err),
             errorName: err?.name,
             stack: err?.stack,
           });
           const currentRun =
-            getCurrentRun(session) ?? session.runs[session.runs.length - 1];
+            getCurrentRun(thread) ?? thread.runs[thread.runs.length - 1];
           if (currentRun) {
             currentRun.isRunning = false;
             currentRun.error = { message: err?.message ?? String(err) };
@@ -330,11 +330,11 @@ export class AGUIClient {
         complete: () => {
           const duration = runStartTime ? Date.now() - runStartTime : 0;
           this.debug.runComplete({
-            sessionId: session.id,
+            threadId: thread.id,
             runId,
             durationMs: duration,
           });
-          const lastRun = session.runs[session.runs.length - 1];
+          const lastRun = thread.runs[thread.runs.length - 1];
           if (lastRun) lastRun.isRunning = false;
           this.notify();
           resolve();
@@ -343,36 +343,36 @@ export class AGUIClient {
     });
   }
 
-  /** 设置当前会话（不发起请求） */
-  setCurrentSession(sessionId: string | null): void {
-    this.state.currentSessionId = sessionId;
+  /** 设置当前线程（不发起请求） */
+  setCurrentThread(threadId: string | null): void {
+    this.state.currentThreadId = threadId;
     this.notify();
   }
 
-  /** 创建新会话并设为当前（id 即 threadId） */
-  createSession(): Session {
+  /** 创建新线程并设为当前（id 即 threadId） */
+  createThread(): Thread {
     const id = generateThreadId();
-    const session = this.createEmptySession(id);
-    this.state.sessions.set(id, session);
-    this.state.currentSessionId = id;
+    const thread = this.createEmptyThread(id);
+    this.state.threads.set(id, thread);
+    this.state.currentThreadId = id;
     this.notify();
-    return session;
+    return thread;
   }
 
   /**
-   * 向指定会话追加一条用户消息并创建新 Run（用于视图层 sendMessage）
+   * 向指定线程追加一条用户消息并创建新 Run（用于视图层 sendMessage）
    * 返回 runId 与 run，供 run() 复用该 run 并填充 toRunAgentMessages(run.messages)
    */
   appendUserMessage(
-    sessionId: string,
+    threadId: string,
     content: string,
   ): { runId: string; run: Run; message: AGUIMessage } {
-    const session = this.state.sessions.get(sessionId);
-    if (!session) throw new Error(`Session not found: ${sessionId}`);
-    // 首次用户消息时，用内容前 20 字作为会话标题
-    if (session.title == null && session.runs.length === 0) {
+    const thread = this.state.threads.get(threadId);
+    if (!thread) throw new Error(`Thread not found: ${threadId}`);
+    // 首次用户消息时，用内容前 20 字作为线程标题
+    if (thread.title == null && thread.runs.length === 0) {
       const trimmed = content.trim();
-      session.title = trimmed ? trimmed.slice(0, 20) : undefined;
+      thread.title = trimmed ? trimmed.slice(0, 20) : undefined;
     }
     const runId = generateRunId();
     const id = generateMessageId();
@@ -393,18 +393,18 @@ export class AGUIClient {
       messages: [msg],
       timestamp: Date.now(),
     };
-    session.runs.push(run);
+    thread.runs.push(run);
     this.notify();
     return { runId, run, message: msg };
   }
 
   /**
-   * 更新指定会话元信息（如 title）
+   * 更新指定线程元信息（如 title）
    */
-  updateSession(sessionId: string, payload: { title?: string }): void {
-    const session = this.state.sessions.get(sessionId);
-    if (!session) return;
-    if (payload.title !== undefined) session.title = payload.title;
+  updateThread(threadId: string, payload: { title?: string }): void {
+    const thread = this.state.threads.get(threadId);
+    if (!thread) return;
+    if (payload.title !== undefined) thread.title = payload.title;
     this.notify();
   }
 
@@ -412,42 +412,42 @@ export class AGUIClient {
    * 分叉：删除包含该消息的 run 及其之后的所有 runs（用于 editMessage 前）
    * 返回是否找到并执行了分叉
    */
-  forkAtMessage(sessionId: string, messageId: string): boolean {
-    const session = this.state.sessions.get(sessionId);
-    if (!session) return false;
+  forkAtMessage(threadId: string, messageId: string): boolean {
+    const thread = this.state.threads.get(threadId);
+    if (!thread) return false;
     let runIndex = -1;
-    for (let i = 0; i < session.runs.length; i++) {
-      if (session.runs[i].messages.some((m) => m.id === messageId)) {
+    for (let i = 0; i < thread.runs.length; i++) {
+      if (thread.runs[i].messages.some((m) => m.id === messageId)) {
         runIndex = i;
         break;
       }
     }
     if (runIndex < 0) return false;
-    session.runs.length = runIndex;
+    thread.runs.length = runIndex;
     this.notify();
     return true;
   }
 
   /**
-   * 删除会话（用于视图层 deleteSession）
+   * 删除线程（用于视图层 deleteThread）
    */
-  deleteSession(sessionId: string): void {
-    this.state.sessions.delete(sessionId);
-    if (this.state.currentSessionId === sessionId) {
-      this.state.currentSessionId = null;
+  deleteThread(threadId: string): void {
+    this.state.threads.delete(threadId);
+    if (this.state.currentThreadId === threadId) {
+      this.state.currentThreadId = null;
     }
     this.notify();
   }
 
   /**
-   * 从持久化数据恢复会话（用于 storage.load() 之后）
-   * 会清除每个 session 的 isRunning / error，避免恢复后显示过期的加载或错误状态
+   * 从持久化数据恢复线程（用于 storage.load() 之后）
+   * 会清除每个 thread 的 isRunning / error，避免恢复后显示过期的加载或错误状态
    */
-  hydrate(sessions: Session[], currentSessionId: string | null): void {
-    const next = new Map<string, Session>();
-    for (const s of sessions) {
-      const runs = Array.isArray((s as Session).runs)
-        ? (s as Session).runs.map((r) => ({
+  hydrate(threads: Thread[], currentThreadId: string | null): void {
+    const next = new Map<string, Thread>();
+    for (const t of threads) {
+      const runs = Array.isArray((t as Thread).runs)
+        ? (t as Thread).runs.map((r) => ({
             ...r,
             messages: (Array.isArray(r.messages) ? r.messages : []).map((m) =>
               normalizeMessage(m),
@@ -456,14 +456,14 @@ export class AGUIClient {
             error: undefined,
           }))
         : [];
-      next.set(s.id, {
-        id: s.id,
+      next.set(t.id, {
+        id: t.id,
         runs,
-        title: (s as Session).title,
+        title: (t as Thread).title,
       });
     }
-    this.state.sessions = next;
-    this.state.currentSessionId = currentSessionId;
+    this.state.threads = next;
+    this.state.currentThreadId = currentThreadId;
     this.streamingMessages.clear();
     this.streamingToolCalls.clear();
     this.notify();

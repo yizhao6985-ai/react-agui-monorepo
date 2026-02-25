@@ -32,17 +32,17 @@ export default {
 在 `AGUIProvider`（来自 react-agui-core）下引入：
 
 ```tsx
-import { AGUIProvider, createLocalSessionStorage } from "react-agui-core";
+import { AGUIProvider, createLocalThreadStorage } from "react-agui-core";
 import { Conversations, Bubble, Sender } from "react-agui-ui";
 
-<AGUIProvider url="/agui" storage={createLocalSessionStorage()}>
+<AGUIProvider url="/agui" storage={createLocalThreadStorage()}>
   <Conversations
-    sessions={sessions}
-    currentSessionId={currentSession?.id ?? null}
-    onNew={createSession}
-    onSwitch={switchSession}
-    onDelete={deleteSession}
-    onEditTitle={updateSessionTitle}
+    threads={threads}
+    currentThreadId={currentThread?.id ?? null}
+    onNew={createThread}
+    onSwitch={switchThread}
+    onDelete={deleteThread}
+    onEditTitle={updateThreadTitle}
   />
   <Bubble.List
     messages={messages}
@@ -60,7 +60,7 @@ import { Conversations, Bubble, Sender } from "react-agui-ui";
 
 | 组件            | 主要 props                                                                                       | 说明                                                  |
 | --------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| `Conversations` | `sessions`、`currentSessionId`、`onNew`、`onSwitch`、`onDelete`、`onEditTitle?`、`getItemTitle?` | 会话列表，支持新建/切换/删除/重命名                   |
+| `Conversations` | `threads`、`currentThreadId`、`onNew`、`onSwitch`、`onDelete`、`onEditTitle?`、`getItemTitle?` | 线程列表，支持新建/切换/删除/重命名                   |
 | `Bubble`        | `message`、`onEdit?`                                                                             | 单条消息渲染，`onEdit` 传入时对 user 消息显示编辑按钮 |
 | `Bubble.List`   | `messages`、`loading?`、`loadingText?`、`onEditMessage?`                                         | 消息列表，含角色标签、loading 状态                    |
 | `Loading`       | `loading?`、`text?`                                                                              | AGUI 级别 loading 状态展示（如「正在回复…」）         |

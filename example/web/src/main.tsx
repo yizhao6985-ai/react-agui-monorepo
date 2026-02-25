@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { AGUIProvider, createLocalSessionStorage } from "react-agui-core";
+import { AGUIProvider, createLocalThreadStorage } from "react-agui-core";
 import App from "./App";
 import "./index.css";
 
@@ -9,7 +9,7 @@ const aguiUrl = import.meta.env.DEV
   ? "/agui"
   : (import.meta.env.VITE_AGUI_URL ?? "http://localhost:3001");
 
-const storage = createLocalSessionStorage({ key: "example_agui_sessions" });
+const storage = createLocalThreadStorage({ key: "example_agui_threads" });
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

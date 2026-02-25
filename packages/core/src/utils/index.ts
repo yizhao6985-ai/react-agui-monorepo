@@ -3,9 +3,9 @@
  */
 export { generateMessageId, generateRunId, generateThreadId } from './ids';
 /**
- * 从 Session 取值的工具函数（派生 messages / currentRun / previousRunState）
+ * 从 Thread 取值的工具函数（派生 messages / currentRun / previousRunState）
  */
-export { getCurrentRun, getPreviousRunState, getSessionMessages } from './session';
+export { getCurrentRun, getPreviousRunState, getThreadMessages } from './thread';
 /**
  * Message 的规范化与派生（segment 聚合文本、转 RunAgentInput messages）
  */

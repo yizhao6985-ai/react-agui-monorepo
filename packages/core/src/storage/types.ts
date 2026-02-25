@@ -1,21 +1,21 @@
 /**
- * Session 持久化存储接口
+ * Thread 持久化存储接口
  * 可实现为 localStorage、IndexedDB、服务端等
  */
 
-import type { Session } from '../types';
+import type { Thread } from '../types';
 
-export interface PersistedSession {
-  sessions: Session[];
-  currentSessionId: string | null;
+export interface PersistedThread {
+  threads: Thread[];
+  currentThreadId: string | null;
 }
 
 /**
- * 会话持久化存储接口
- * - load: 恢复会话列表与当前会话 ID
- * - save: 持久化会话列表与当前会话 ID（可由实现方做节流/批量）
+ * 线程持久化存储接口
+ * - load: 恢复线程列表与当前线程 ID
+ * - save: 持久化线程列表与当前线程 ID（可由实现方做节流/批量）
  */
-export interface AGUISessionStorage {
-  load(): Promise<PersistedSession>;
-  save(sessions: Session[], currentSessionId: string | null): Promise<void>;
+export interface AGUIThreadStorage {
+  load(): Promise<PersistedThread>;
+  save(threads: Thread[], currentThreadId: string | null): Promise<void>;
 }

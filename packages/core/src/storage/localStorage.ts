@@ -1,57 +1,57 @@
 /**
- * 基于 localStorage 的 Session 持久化实现
- * 注意：localStorage 约 5MB 限制，会话过多或消息过长可能触发 QUOTA_EXCEEDED，可改用 IndexedDB
+ * 基于 localStorage 的 Thread 持久化实现
+ * 注意：localStorage 约 5MB 限制，线程过多或消息过长可能触发 QUOTA_EXCEEDED，可改用 IndexedDB
  */
 
-import type { Session } from '../types';
-import type { AGUISessionStorage, PersistedSession } from './types';
+import type { Thread } from '../types';
+import type { AGUIThreadStorage, PersistedThread } from './types';
 
-const DEFAULT_KEY = 'agui_sessions';
+const DEFAULT_KEY = 'agui_threads';
 
-export interface LocalSessionStorageOptions {
-  /** localStorage 的 key，默认 'agui_sessions' */
+export interface LocalThreadStorageOptions {
+  /** localStorage 的 key，默认 'agui_threads' */
   key?: string;
 }
 
 /**
- * 创建基于 localStorage 的会话存储
+ * 创建基于 localStorage 的线程存储
  */
-export function createLocalSessionStorage(
-  options: LocalSessionStorageOptions = {}
-): AGUISessionStorage {
+export function createLocalThreadStorage(
+  options: LocalThreadStorageOptions = {}
+): AGUIThreadStorage {
   const key = options.key ?? DEFAULT_KEY;
 
   return {
-    async load(): Promise<PersistedSession> {
+    async load(): Promise<PersistedThread> {
       if (typeof localStorage === 'undefined') {
-        return { sessions: [], currentSessionId: null };
+        return { threads: [], currentThreadId: null };
       }
       try {
         const raw = localStorage.getItem(key);
-        if (!raw) return { sessions: [], currentSessionId: null };
-        const data = JSON.parse(raw) as PersistedSession;
-        const sessions = Array.isArray(data.sessions) ? data.sessions : [];
-        const currentSessionId =
-          typeof data.currentSessionId === 'string' || data.currentSessionId === null
-            ? data.currentSessionId
+        if (!raw) return { threads: [], currentThreadId: null };
+        const data = JSON.parse(raw) as PersistedThread;
+        const threads = Array.isArray(data.threads) ? data.threads : [];
+        const currentThreadId =
+          typeof data.currentThreadId === 'string' || data.currentThreadId === null
+            ? data.currentThreadId
             : null;
-        return { sessions, currentSessionId };
+        return { threads, currentThreadId };
       } catch {
-        return { sessions: [], currentSessionId: null };
+        return { threads: [], currentThreadId: null };
       }
     },
 
-    async save(sessions: Session[], currentSessionId: string | null): Promise<void> {
+    async save(threads: Thread[], currentThreadId: string | null): Promise<void> {
       if (typeof localStorage === 'undefined') return;
       try {
-        const data: PersistedSession = {
-          sessions,
-          currentSessionId,
+        const data: PersistedThread = {
+          threads,
+          currentThreadId,
         };
         localStorage.setItem(key, JSON.stringify(data));
       } catch (e) {
         if (e instanceof Error && e.name === 'QuotaExceededError') {
-          console.warn('[agui] localStorage quota exceeded, session not persisted');
+          console.warn('[agui] localStorage quota exceeded, thread not persisted');
         }
         throw e;
       }

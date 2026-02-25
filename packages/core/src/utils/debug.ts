@@ -14,7 +14,7 @@ export interface AGUIDebugRunStartData {
 }
 
 export interface AGUIDebugRunFailedData {
-  sessionId: string;
+  threadId: string;
   runId: string;
   errorMessage: string;
   errorName?: string;
@@ -22,7 +22,7 @@ export interface AGUIDebugRunFailedData {
 }
 
 export interface AGUIDebugRunCompleteData {
-  sessionId: string;
+  threadId: string;
   runId: string;
   durationMs: number;
 }

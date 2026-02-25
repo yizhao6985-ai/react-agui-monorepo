@@ -14,10 +14,10 @@ pnpm dev     # 监听构建
 ## 导出概览
 
 - **React**：`AGUIProvider`、`AGUIContext`、`useAGUI`
-- **存储**：`createLocalSessionStorage`、类型 `AGUISessionStorage`、`PersistedSession`
-- **工具**：`getMessageText`、`getSessionMessages`
-- **客户端**：`AGUIClient`（createSession、appendUserMessage、run、forkAtMessage、deleteSession、hydrate 等）
-- **类型**：`Session`、`Run`、`AGUIMessage`、`MessageSegment` 等
+- **存储**：`createLocalThreadStorage`、类型 `AGUIThreadStorage`、`PersistedThread`
+- **工具**：`getMessageText`、`getThreadMessages`
+- **客户端**：`AGUIClient`（createThread、appendUserMessage、run、forkAtMessage、deleteThread、hydrate 等）
+- **类型**：`Thread`、`Run`、`AGUIMessage`、`MessageSegment` 等
 
 ## useAGUI 回调
 
@@ -25,8 +25,8 @@ pnpm dev     # 监听构建
 |------|------|
 | `sendMessage(content, options?)` | 发送消息并触发 Agent |
 | `editMessage(messageId, content, options?)` | 编辑消息并分叉：截断后续内容，用新内容重新发送 |
-| `retryMessage(options?)` | 重试当前会话最后一条失败的 run |
-| `createSession()` | 新建并切换为当前会话 |
-| `deleteSession(sessionId)` | 删除会话 |
-| `switchSession(sessionId \| null)` | 切换当前会话 |
-| `updateSessionTitle(sessionId, title)` | 更新会话标题 |
+| `retryMessage(options?)` | 重试当前线程最后一条失败的 run |
+| `createThread()` | 新建并切换为当前线程 |
+| `deleteThread(threadId)` | 删除线程 |
+| `switchThread(threadId \| null)` | 切换当前线程 |
+| `updateThreadTitle(threadId, title)` | 更新线程标题 |

@@ -14,7 +14,7 @@ export type {
   RenderType,
   Run,
   Runs,
-  Session,
+  Thread,
   TextSegment,
   ToolSegment,
 } from "./types";
@@ -23,13 +23,13 @@ export type {
 export { AGUIClient } from "./agui";
 
 // 持久化存储
-export type { AGUISessionStorage, PersistedSession } from "./storage";
-export { createLocalSessionStorage } from "./storage";
-export type { LocalSessionStorageOptions } from "./storage";
+export type { AGUIThreadStorage, PersistedThread } from "./storage";
+export { createLocalThreadStorage } from "./storage";
+export type { LocalThreadStorageOptions } from "./storage";
 
 // React（面向视图层的 API）
 export { AGUIProvider, AGUIContext } from "./context/AGUIContext";
 export type { AGUIProviderValue } from "./context/AGUIContext";
 export { useAGUI } from "./hooks/useAGUI";
 // 工具（供 UI 包等使用）
-export { getMessageText, getSessionMessages } from "./utils";
+export { getMessageText, getThreadMessages } from "./utils";

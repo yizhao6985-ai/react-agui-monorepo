@@ -18,12 +18,12 @@ pnpm preview # 预览构建结果
 
 ## 功能
 
-- 会话列表：新建、切换、删除、重命名
+- 线程列表：新建、切换、删除、重命名
 - 消息列表：发送、编辑（分叉后重新发送）、重试
-- 会话持久化：localStorage（key: `example_agui_sessions`）
+- 线程持久化：localStorage（key: `example_agui_threads`）
 
 ## 依赖关系
 
-- **react-agui-core**：AGUIProvider、useAGUI、createLocalSessionStorage
+- **react-agui-core**：AGUIProvider、useAGUI、createLocalThreadStorage
 - **react-agui-ui**：Conversations、Bubble、Bubble.List、Sender（Tailwind）
 - **Tailwind**：`content` 已包含 `packages/ui/src`，以生成 ui 组件的样式

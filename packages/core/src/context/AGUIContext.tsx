@@ -1,6 +1,6 @@
 /**
- * AGUI React Context：面向视图层的 API（sendMessage / editMessage / createSession / deleteSession）
- * 支持可选 storage 做会话持久化（如 localStorage）
+ * AGUI React Context：面向视图层的 API（sendMessage / editMessage / createThread / deleteThread）
+ * 支持可选 storage 做线程持久化（如 localStorage）
  */
 
 import React, {
@@ -14,43 +14,43 @@ import React, {
 import { AGUIClient } from "../agui";
 import { getCurrentRun } from "../utils";
 import type { RunAgentParameters } from "@ag-ui/client";
-import type { Session } from "../types";
-import type { AGUISessionStorage } from "../storage/types";
+import type { Thread } from "../types";
+import type { AGUIThreadStorage } from "../storage/types";
 
 /** 面向视图层的数据与回调（类似 AntdX 等 AI 组件库） */
 export interface AGUIProviderValue {
   // ---------- 数据（单层，无冗余派生） ----------
-  /** 会话列表（侧边栏）；当前会话即其中 id 与 currentSession.id 一致的那条 */
-  sessions: Session[];
-  /** 当前会话（由 Provider 根据 currentSessionId + sessions 算出）；为 null 表示未选会话 */
-  currentSession: Session | null;
-  /** 当前会话是否正在请求中（由 getCurrentRun(currentSession)?.isRunning 派生） */
+  /** 线程列表（侧边栏）；当前线程即其中 id 与 currentThread.id 一致的那条 */
+  threads: Thread[];
+  /** 当前线程（由 Provider 根据 currentThreadId + threads 算出）；为 null 表示未选线程 */
+  currentThread: Thread | null;
+  /** 当前线程是否正在请求中（由 getCurrentRun(currentThread)?.isRunning 派生） */
   loading: boolean;
-  /** 当前会话错误信息（由 getCurrentRun(currentSession)?.error 派生） */
+  /** 当前线程错误信息（由 getCurrentRun(currentThread)?.error 派生） */
   error: { message: string; code?: string } | null;
 
   // ---------- 回调 ----------
   /** 发送用户消息并触发 Agent 运行 */
   sendMessage: (
     content: string,
-    options?: { sessionId?: string },
+    options?: { threadId?: string },
   ) => Promise<void>;
   /** 编辑消息并分叉：从该条起截断后续内容，用新内容重新发送 */
   editMessage: (
     messageId: string,
     content: string,
-    options?: { sessionId?: string },
+    options?: { threadId?: string },
   ) => Promise<void>;
-  /** 重试当前会话最后一条失败的 run */
-  retryMessage: (options?: { sessionId?: string }) => Promise<void>;
-  /** 新建会话并切换为当前 */
-  createSession: () => Session;
-  /** 删除指定会话 */
-  deleteSession: (sessionId: string) => void;
-  /** 切换当前会话 */
-  switchSession: (sessionId: string | null) => void;
-  /** 更新会话标题 */
-  updateSessionTitle: (sessionId: string, title: string) => void;
+  /** 重试当前线程最后一条失败的 run */
+  retryMessage: (options?: { threadId?: string }) => Promise<void>;
+  /** 新建线程并切换为当前 */
+  createThread: () => Thread;
+  /** 删除指定线程 */
+  deleteThread: (threadId: string) => void;
+  /** 切换当前线程 */
+  switchThread: (threadId: string | null) => void;
+  /** 更新线程标题 */
+  updateThreadTitle: (threadId: string, title: string) => void;
 }
 
 export const AGUIContext = createContext<AGUIProviderValue | undefined>(
@@ -64,8 +64,8 @@ export interface AGUIProviderProps {
   headers?: Record<string, string>;
   /** 是否调试（打印事件） */
   debug?: boolean;
-  /** 可选：会话持久化存储（如 createLocalSessionStorage()），传入则自动加载/保存 */
-  storage?: AGUISessionStorage;
+  /** 可选：线程持久化存储（如 createLocalThreadStorage()），传入则自动加载/保存 */
+  storage?: AGUIThreadStorage;
   /** 子组件 */
   children?: React.ReactNode;
 }
@@ -98,7 +98,7 @@ export function AGUIProvider({
       saveTimerRef.current = null;
       const s = client.getState();
       store
-        .save(Array.from(s.sessions.values()), s.currentSessionId)
+        .save(Array.from(s.threads.values()), s.currentThreadId)
         .catch((err) => {
           console.warn("[agui] storage.save failed", err);
         });
@@ -115,106 +115,106 @@ export function AGUIProvider({
 
   useEffect(() => {
     if (!storage) return;
-    storage.load().then(({ sessions, currentSessionId }) => {
-      client.hydrate(sessions, currentSessionId);
+    storage.load().then(({ threads, currentThreadId }) => {
+      client.hydrate(threads, currentThreadId);
     });
   }, [client, storage]);
 
-  const sessions = useMemo(
-    () => Array.from(state.sessions.values()),
-    [state.sessions],
+  const threads = useMemo(
+    () => Array.from(state.threads.values()),
+    [state.threads],
   );
-  const currentSession =
-    state.currentSessionId != null
-      ? (state.sessions.get(state.currentSessionId) ?? null)
+  const currentThread =
+    state.currentThreadId != null
+      ? (state.threads.get(state.currentThreadId) ?? null)
       : null;
-  const loading = getCurrentRun(currentSession)?.isRunning ?? false;
-  const error = getCurrentRun(currentSession)?.error ?? null;
+  const loading = getCurrentRun(currentThread)?.isRunning ?? false;
+  const error = getCurrentRun(currentThread)?.error ?? null;
 
   const sendMessage = useCallback(
     async (content: string) => {
-      const session = currentSession ?? client.createSession();
-      const { runId } = client.appendUserMessage(session.id, content);
+      const thread = currentThread ?? client.createThread();
+      const { runId } = client.appendUserMessage(thread.id, content);
       const parameters: RunAgentParameters = { runId };
-      await client.run(parameters, session.id);
+      await client.run(parameters, thread.id);
     },
-    [client, currentSession],
+    [client, currentThread],
   );
 
   const editMessage = useCallback(
     async (
       messageId: string,
       content: string,
-      options?: { sessionId?: string },
+      options?: { threadId?: string },
     ) => {
-      const sessionId = options?.sessionId ?? currentSession?.id ?? null;
-      if (!sessionId) return;
-      if (!client.forkAtMessage(sessionId, messageId)) return;
-      const { runId } = client.appendUserMessage(sessionId, content);
-      await client.run({ runId }, sessionId);
+      const threadId = options?.threadId ?? currentThread?.id ?? null;
+      if (!threadId) return;
+      if (!client.forkAtMessage(threadId, messageId)) return;
+      const { runId } = client.appendUserMessage(threadId, content);
+      await client.run({ runId }, threadId);
     },
-    [client, currentSession],
+    [client, currentThread],
   );
 
   const retryMessage = useCallback(
-    async (options?: { sessionId?: string }) => {
-      const sessionId = options?.sessionId ?? currentSession?.id ?? null;
-      if (!sessionId) return;
+    async (options?: { threadId?: string }) => {
+      const threadId = options?.threadId ?? currentThread?.id ?? null;
+      if (!threadId) return;
       const s = client.getState();
-      const session = s.sessions.get(sessionId);
-      if (!session || session.runs.length === 0) return;
-      const lastRun = session.runs[session.runs.length - 1];
+      const thread = s.threads.get(threadId);
+      if (!thread || thread.runs.length === 0) return;
+      const lastRun = thread.runs[thread.runs.length - 1];
       const parameters: RunAgentParameters = { runId: lastRun.runId };
-      await client.run(parameters, sessionId);
+      await client.run(parameters, threadId);
     },
-    [client, currentSession],
+    [client, currentThread],
   );
 
-  const createSession = useCallback(() => client.createSession(), [client]);
+  const createThread = useCallback(() => client.createThread(), [client]);
 
-  const deleteSession = useCallback(
-    (sessionId: string) => client.deleteSession(sessionId),
+  const deleteThread = useCallback(
+    (threadId: string) => client.deleteThread(threadId),
     [client],
   );
 
-  const switchSession = useCallback(
-    (sessionId: string | null) => client.setCurrentSession(sessionId),
+  const switchThread = useCallback(
+    (threadId: string | null) => client.setCurrentThread(threadId),
     [client],
   );
 
-  const updateSessionTitle = useCallback(
-    (sessionId: string, title: string) => {
-      client.updateSession(sessionId, { title });
+  const updateThreadTitle = useCallback(
+    (threadId: string, title: string) => {
+      client.updateThread(threadId, { title });
     },
     [client],
   );
 
   const value = useMemo<AGUIProviderValue>(
     () => ({
-      sessions,
-      currentSession,
+      threads,
+      currentThread,
       loading,
       error,
       sendMessage,
       editMessage,
       retryMessage,
-      createSession,
-      deleteSession,
-      switchSession,
-      updateSessionTitle,
+      createThread,
+      deleteThread,
+      switchThread,
+      updateThreadTitle,
     }),
     [
-      sessions,
-      currentSession,
+      threads,
+      currentThread,
       loading,
       error,
       sendMessage,
       editMessage,
-      createSession,
+      createThread,
       retryMessage,
-      deleteSession,
-      switchSession,
-      updateSessionTitle,
+      deleteThread,
+      switchThread,
+      updateThreadTitle,
     ],
   );
 

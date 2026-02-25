@@ -1,6 +1,6 @@
 # react-agui-core
 
-基于 [AG-UI 协议](https://docs.ag-ui.com/) 的 React 生态：**react-agui-core** 提供状态与逻辑（Provider、hooks、工具），**react-agui-ui** 提供基于 Tailwind 的 UI 组件（Conversations、Bubble、Bubble.List、Sender），支持发送、编辑（分叉重发）、重试、会话重命名等。
+基于 [AG-UI 协议](https://docs.ag-ui.com/) 的 React 生态：**react-agui-core** 提供状态与逻辑（Provider、hooks、工具），**react-agui-ui** 提供基于 Tailwind 的 UI 组件（Conversations、Bubble、Bubble.List、Sender），支持发送、编辑（分叉重发）、重试、线程重命名等。
 
 ---
 
@@ -75,17 +75,17 @@ VITE_AGUI_URL=https://your-backend.com/agui pnpm build
 4. 再启动前端：`pnpm dev:web`
 5. 浏览器打开 `http://localhost:5173`，即可与 LangChain Agent 对话
 
-会话数据会持久化到 localStorage（key: `example_agui_sessions`）。
+线程数据会持久化到 localStorage（key: `example_agui_threads`）。
 
 ---
 
 ## 架构
 
-- **AGUI 封装层**（core）：`AGUIClient` 连接后端、消费 SSE，聚合成 Session / Run / Message。
-- **React 层**（core）：`AGUIProvider` + `useAGUI()` 暴露面向视图的数据与回调（sessions、currentSession、sendMessage、createSession 等）。
+- **AGUI 封装层**（core）：`AGUIClient` 连接后端、消费 SSE，聚合成 Thread / Run / Message。
+- **React 层**（core）：`AGUIProvider` + `useAGUI()` 暴露面向视图的数据与回调（threads、currentThread、sendMessage、createThread 等）。
 - **UI 层**（ui）：`Conversations`、`Bubble`、`Bubble.List`、`Sender` 等带 Tailwind 样式的组件，依赖 core。
 
-数据模型要点：会话为 `Session { id, runs }`，每条 Run 含 `messages`；当前会话的「消息列表」为 `currentSession.runs.flatMap(r => r.messages)`。
+数据模型要点：线程为 `Thread { id, runs }`，每条 Run 含 `messages`；当前线程的「消息列表」为 `currentThread.runs.flatMap(r => r.messages)`。
 
 ---
 
@@ -111,12 +111,12 @@ pnpm add react-agui-core react-agui-ui @ag-ui/core
 
 ## 使用
 
-### 1. 用 Provider 包裹应用（可选会话持久化）
+### 1. 用 Provider 包裹应用（可选线程持久化）
 
 ```tsx
-import { AGUIProvider, createLocalSessionStorage } from "react-agui-core";
+import { AGUIProvider, createLocalThreadStorage } from "react-agui-core";
 
-const storage = createLocalSessionStorage({ key: "my_app_agui_sessions" });
+const storage = createLocalThreadStorage({ key: "my_app_agui_threads" });
 
 <AGUIProvider
   url="https://your-agui-backend.com/agui"
@@ -127,7 +127,7 @@ const storage = createLocalSessionStorage({ key: "my_app_agui_sessions" });
 </AGUIProvider>;
 ```
 
-不传 `storage` 时会话仅内存；传入则挂载时加载、变更时防抖保存。
+不传 `storage` 时线程仅内存；传入则挂载时加载、变更时防抖保存。
 
 ### 2. 在组件内使用 useAGUI（core）+ 可选 UI 组件（ui）
 
@@ -137,31 +137,31 @@ import { Conversations, Bubble, Sender } from "react-agui-ui";
 
 function Chat() {
   const {
-    sessions,
-    currentSession,
+    threads,
+    currentThread,
     loading,
     error,
     sendMessage,
     editMessage,
     retryMessage,
-    createSession,
-    deleteSession,
-    switchSession,
-    updateSessionTitle,
+    createThread,
+    deleteThread,
+    switchThread,
+    updateThreadTitle,
   } = useAGUI();
 
-  const messages = currentSession?.runs.flatMap((r) => r.messages) ?? [];
+  const messages = currentThread?.runs.flatMap((r) => r.messages) ?? [];
 
   return (
     <div className="flex">
       <aside>
         <Conversations
-          sessions={sessions}
-          currentSessionId={currentSession?.id ?? null}
-          onNew={createSession}
-          onSwitch={switchSession}
-          onDelete={deleteSession}
-          onEditTitle={updateSessionTitle}
+          threads={threads}
+          currentThreadId={currentThread?.id ?? null}
+          onNew={createThread}
+          onSwitch={switchThread}
+          onDelete={deleteThread}
+          onEditTitle={updateThreadTitle}
         />
       </aside>
       <main>
@@ -183,37 +183,37 @@ function Chat() {
 }
 ```
 
-### 3. 会话区 / 对话区 / 输入区
+### 3. 线程区 / 对话区 / 输入区
 
 | 区域       | 数据与操作                                                                                                                          |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **会话区** | `sessions`、`currentSession?.id` 高亮；`createSession()`、`switchSession(id)`、`deleteSession(id)`、`updateSessionTitle(id, title)` |
+| **线程区** | `threads`、`currentThread?.id` 高亮；`createThread()`、`switchThread(id)`、`deleteThread(id)`、`updateThreadTitle(id, title)` |
 | **对话区** | 消息列表：`<Bubble.List messages={...} loading={...} onEditMessage={...} />`；`loading`、`error`、`retryMessage()`                  |
-| **输入区** | `sendMessage(content)`（无当前会话时会先 `createSession()`）；`<Sender onSend={...} disabled={loading} />`                          |
+| **输入区** | `sendMessage(content)`（无当前线程时会先 `createThread()`）；`<Sender onSend={...} disabled={loading} />`                          |
 
 ### 4. useAGUI() 返回说明
 
 | 数据             | 类型                         | 说明                                     |
 | ---------------- | ---------------------------- | ---------------------------------------- |
-| `sessions`       | `Session[]`                  | 会话列表                                 |
-| `currentSession` | `Session \| null`            | 当前会话；消息来自 `currentSession.runs` |
+| `threads`        | `Thread[]`                   | 线程列表                                 |
+| `currentThread`  | `Thread \| null`             | 当前线程；消息来自 `currentThread.runs`  |
 | `loading`        | `boolean`                    | 当前是否在请求中                         |
-| `error`          | `{ message, code? } \| null` | 当前会话错误                             |
+| `error`          | `{ message, code? } \| null` | 当前线程错误                             |
 
 | 回调                                        | 说明                                                       |
 | ------------------------------------------- | ---------------------------------------------------------- |
-| `sendMessage(content, options?)`            | 发送消息并触发 Agent；可传 `sessionId`                     |
+| `sendMessage(content, options?)`            | 发送消息并触发 Agent；可传 `threadId`                      |
 | `editMessage(messageId, content, options?)` | 编辑消息并分叉：截断该条及之后的所有内容，用新内容重新发送 |
-| `retryMessage(options?)`                    | 重试当前会话最后一条失败的 run                             |
-| `createSession()`                           | 新建并切换为当前会话                                       |
-| `deleteSession(sessionId)`                  | 删除会话                                                   |
-| `switchSession(sessionId \| null)`          | 切换当前会话                                               |
-| `updateSessionTitle(sessionId, title)`      | 更新会话标题                                               |
+| `retryMessage(options?)`                    | 重试当前线程最后一条失败的 run                             |
+| `createThread()`                            | 新建并切换为当前线程                                       |
+| `deleteThread(threadId)`                    | 删除线程                                                   |
+| `switchThread(threadId \| null)`            | 切换当前线程                                               |
+| `updateThreadTitle(threadId, title)`        | 更新线程标题                                               |
 
-### 5. 会话持久化（core）
+### 5. 线程持久化（core）
 
-- **接口**：`AGUISessionStorage`（`load` / `save`），可自实现为 IndexedDB、服务端等。
-- **内置**：`createLocalSessionStorage({ key?: string })`，默认 key `agui_sessions`，localStorage 约 5MB 限制需注意。
+- **接口**：`AGUIThreadStorage`（`load` / `save`），可自实现为 IndexedDB、服务端等。
+- **内置**：`createLocalThreadStorage({ key?: string })`，默认 key `agui_threads`，localStorage 约 5MB 限制需注意。
 
 ---
 
@@ -224,16 +224,16 @@ function Chat() {
 | 名称                                   | 说明                                                                                           |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `AGUIProvider`                         | 根组件，传入 `url`、可选 `headers`、`debug`、`storage`                                         |
-| `useAGUI()`                            | 返回 sessions、currentSession、loading、error 及 sendMessage、editMessage、retryMessage 等回调 |
-| `createLocalSessionStorage`            | 基于 localStorage 的会话持久化                                                                 |
-| `getMessageText`, `getSessionMessages` | 工具函数（供 ui 或自定义 UI 使用）                                                             |
+| `useAGUI()`                            | 返回 threads、currentThread、loading、error 及 sendMessage、editMessage、retryMessage 等回调   |
+| `createLocalThreadStorage`             | 基于 localStorage 的线程持久化                                                                 |
+| `getMessageText`, `getThreadMessages`  | 工具函数（供 ui 或自定义 UI 使用）                                                             |
 | `AGUIClient`                           | 底层客户端，可单独使用（无 React）                                                             |
 
 **react-agui-ui**（需先配置 Tailwind content）
 
 | 名称            | 说明                                                                                                                 |
 | --------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `Conversations` | 会话列表，需传入 `sessions`、`currentSessionId`、`onNew`、`onSwitch`、`onDelete`，可选 `onEditTitle`、`getItemTitle` |
+| `Conversations` | 线程列表，需传入 `threads`、`currentThreadId`、`onNew`、`onSwitch`、`onDelete`，可选 `onEditTitle`、`getItemTitle`   |
 | `Bubble`        | 单条消息渲染（文本、工具调用等），可选 `onEdit` 编辑 user 消息                                                       |
 | `Bubble.List`   | 消息列表展示，含角色标签、loading 状态，可选 `onEditMessage` 编辑消息                                                |
 | `Sender`        | 输入框 + 发送，需传入 `onSend`、`disabled`，可选 `placeholder`                                                       |

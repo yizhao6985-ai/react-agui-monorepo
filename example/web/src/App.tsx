@@ -3,32 +3,32 @@ import { Conversations, Bubble, Sender } from "react-agui-ui";
 
 export default function App() {
   const {
-    sessions,
-    currentSession,
+    threads,
+    currentThread,
     loading,
     error,
     sendMessage,
     editMessage,
     retryMessage,
-    createSession,
-    deleteSession,
-    switchSession,
-    updateSessionTitle,
+    createThread,
+    deleteThread,
+    switchThread,
+    updateThreadTitle,
   } = useAGUI();
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <aside className="flex w-60 shrink-0 flex-col overflow-hidden border-r border-zinc-200 bg-zinc-50">
         <div className="border-b border-zinc-200 px-4 py-3">
-          <strong className="text-zinc-900">会话</strong>
+          <strong className="text-zinc-900">线程</strong>
         </div>
         <Conversations
-          sessions={sessions}
-          currentSessionId={currentSession?.id ?? null}
-          onNew={createSession}
-          onSwitch={switchSession}
-          onDelete={deleteSession}
-          onEditTitle={updateSessionTitle}
+          threads={threads}
+          currentThreadId={currentThread?.id ?? null}
+          onNew={createThread}
+          onSwitch={switchThread}
+          onDelete={deleteThread}
+          onEditTitle={updateThreadTitle}
           className="min-h-0 flex-1 overflow-y-auto"
         />
       </aside>
@@ -51,16 +51,16 @@ export default function App() {
             </div>
           )}
 
-          {!currentSession && (
+          {!currentThread && (
             <div className="flex flex-1 items-center justify-center text-zinc-600 text-sm">
-              请从左侧新建或选择一个会话
+              请从左侧新建或选择一个线程
             </div>
           )}
 
-          {currentSession ? (
+          {currentThread ? (
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden py-4">
               <Bubble.List
-                messages={currentSession.runs.flatMap((r) => r.messages)}
+                messages={currentThread.runs.flatMap((r) => r.messages)}
                 loading={loading}
                 onEditMessage={editMessage}
               />

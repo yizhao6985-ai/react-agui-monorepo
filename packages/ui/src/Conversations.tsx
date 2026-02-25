@@ -1,30 +1,30 @@
 /**
- * 对话管理：会话列表、新建/切换/删除，通过 props 接收数据与回调
+ * 对话管理：线程列表、新建/切换/删除，通过 props 接收数据与回调
  * 不依赖 AGUIProvider
  */
 
 import React, { useState } from "react";
-import type { Session } from "react-agui-core";
+import type { Thread } from "react-agui-core";
 import { cn } from "./utils/cn";
 
 export interface ConversationsProps {
-  sessions: Session[];
-  currentSessionId: string | null;
+  threads: Thread[];
+  currentThreadId: string | null;
   onNew: () => void;
-  onSwitch: (sessionId: string) => void;
-  onDelete: (sessionId: string) => void;
-  /** 编辑会话标题，传入则显示重命名按钮 */
-  onEditTitle?: (sessionId: string, title: string) => void;
-  getItemTitle?: (session: Session) => string;
+  onSwitch: (threadId: string) => void;
+  onDelete: (threadId: string) => void;
+  /** 编辑线程标题，传入则显示重命名按钮 */
+  onEditTitle?: (threadId: string, title: string) => void;
+  getItemTitle?: (thread: Thread) => string;
   className?: string;
 }
 
-const defaultGetTitle = (s: Session): string =>
-  s.title?.trim() || s.id.slice(0, 12);
+const defaultGetTitle = (t: Thread): string =>
+  t.title?.trim() || t.id.slice(0, 12);
 
 export function Conversations({
-  sessions,
-  currentSessionId,
+  threads,
+  currentThreadId,
   onNew,
   onSwitch,
   onDelete,
@@ -35,11 +35,11 @@ export function Conversations({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  const handleStartEdit = (e: React.MouseEvent, session: Session) => {
+  const handleStartEdit = (e: React.MouseEvent, thread: Thread) => {
     e.stopPropagation();
     if (!onEditTitle) return;
-    setEditingId(session.id);
-    setEditValue(getItemTitle(session));
+    setEditingId(thread.id);
+    setEditValue(getItemTitle(thread));
   };
 
   const handleSaveEdit = () => {
@@ -55,33 +55,33 @@ export function Conversations({
     <div
       className={cn("flex flex-col", className)}
       role="listbox"
-      aria-label="会话列表"
+      aria-label="线程列表"
     >
       <button
         type="button"
         className="mx-2 my-2 px-4 py-2.5 rounded-lg border border-dashed border-zinc-300 text-zinc-600 text-sm hover:border-indigo-500 hover:text-indigo-600"
         onClick={onNew}
-        aria-label="新建会话"
+        aria-label="新建线程"
       >
-        新建会话
+        新建线程
       </button>
       <div className="flex flex-col">
-        {sessions.length === 0 ? (
-          <div className="p-4 text-zinc-600 text-sm">暂无会话</div>
+        {threads.length === 0 ? (
+          <div className="p-4 text-zinc-600 text-sm">暂无线程</div>
         ) : (
-          sessions.map((session) => {
-            const isActive = currentSessionId === session.id;
-            const isEditing = editingId === session.id;
+          threads.map((thread) => {
+            const isActive = currentThreadId === thread.id;
+            const isEditing = editingId === thread.id;
             return (
               <div
-                key={session.id}
+                key={thread.id}
                 className={cn(
                   "flex items-center justify-between gap-1 px-4 py-2.5 mx-2 rounded-md text-sm cursor-pointer hover:bg-zinc-100",
                   isActive ? "bg-zinc-100" : undefined,
                 )}
                 role="option"
                 aria-selected={isActive}
-                onClick={() => !isEditing && onSwitch(session.id)}
+                onClick={() => !isEditing && onSwitch(thread.id)}
               >
                 {isEditing ? (
                   <input
@@ -99,7 +99,7 @@ export function Conversations({
                   />
                 ) : (
                   <span className="truncate flex-1 min-w-0">
-                    {getItemTitle(session)}
+                    {getItemTitle(thread)}
                   </span>
                 )}
                 <div className="flex shrink-0 gap-0.5">
@@ -107,7 +107,7 @@ export function Conversations({
                     <button
                       type="button"
                       className="opacity-60 px-2 py-1 rounded text-zinc-600 hover:opacity-100 hover:bg-zinc-200 text-xs"
-                      onClick={(e) => handleStartEdit(e, session)}
+                      onClick={(e) => handleStartEdit(e, thread)}
                       aria-label="重命名"
                     >
                       重命名
@@ -118,9 +118,9 @@ export function Conversations({
                     className="opacity-60 px-2 py-1 rounded text-zinc-600 hover:opacity-100 hover:bg-red-50 hover:text-red-600 text-xs"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDelete(session.id);
+                      onDelete(thread.id);
                     }}
-                    aria-label="删除会话"
+                    aria-label="删除线程"
                   >
                     删除
                   </button>

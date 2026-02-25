@@ -1,3 +1,3 @@
-export type { AGUISessionStorage, PersistedSession } from './types';
-export { createLocalSessionStorage } from './localStorage';
-export type { LocalSessionStorageOptions } from './localStorage';
+export type { AGUIThreadStorage, PersistedThread } from './types';
+export { createLocalThreadStorage } from './localStorage';
+export type { LocalThreadStorageOptions } from './localStorage';

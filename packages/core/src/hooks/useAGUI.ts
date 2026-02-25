@@ -1,5 +1,5 @@
 /**
- * useAGUI：在组件内直接获取 AGUI 内容输出（当前会话、消息、运行方法等）
+ * useAGUI：在组件内直接获取 AGUI 内容输出（当前线程、消息、运行方法等）
  */
 
 import { useContext } from 'react';
